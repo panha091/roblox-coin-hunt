@@ -76,10 +76,12 @@ end
 -- WORLD
 -- =========================
 
+-- Thin grass carpet: sits slightly ABOVE the original Roblox Baseplate.
+-- Keep the original Baseplate underneath; this layer hides it during play.
 makePart(
 	"MainGrass",
-	Vector3.new(MAP_SIZE, 2, MAP_SIZE),
-	Vector3.new(0, -1, 0),
+	Vector3.new(MAP_SIZE, 0.25, MAP_SIZE),
+	Vector3.new(0, 0.13, 0),
 	Enum.Material.Grass,
 	world,
 	Color3.fromRGB(78, 168, 89)
@@ -88,7 +90,7 @@ makePart(
 local plaza = makePart(
 	"SpawnPlaza",
 	Vector3.new(110, 1, 110),
-	Vector3.new(0, 0.05, 0),
+	Vector3.new(0, 0.30, 0),
 	Enum.Material.Slate,
 	world,
 	Color3.fromRGB(86, 89, 102)
@@ -110,11 +112,16 @@ spawn.Size = Vector3.new(8, 1, 8)
 spawn.Position = Vector3.new(0, 2, 0)
 spawn.Anchored = true
 spawn.Transparency = 1
-spawn.CanCollide = true
+spawn.CanCollide = false
+spawn.CanTouch = false
+spawn.CanQuery = false
+spawn.CastShadow = false
 spawn.Neutral = true
+spawn.Duration = 0
 spawn.Parent = world
 
 addBillboard(plaza, "COIN HUNT\nEXPLORE • COLLECT • COMBO", 300, 78, Vector3.new(0, 9, 0))
+addBillboard(plaza, "SHOP\nSpeed Boost • 25 Coins • 2x Coins • 100 Coins", 340, 58, Vector3.new(0, 5, 0))
 
 -- Roads pull players toward the outer zones.
 for _, data in ipairs({
@@ -588,6 +595,19 @@ local function rewardPlayer(player, baseValue, coinName)
 
 	local streakBonus = math.floor((state.streak - 1) / 5)
 	local amount = baseValue * multiplier + streakBonus
+
+	-- Shop upgrade: use a real multiplier attribute.
+	local coinMultiplier = player:GetAttribute("CoinMultiplier")
+	if typeof(coinMultiplier) ~= "number" or coinMultiplier < 1 then
+		coinMultiplier = player:GetAttribute("DoubleCoins") and 2 or 1
+	end
+	amount *= coinMultiplier
+
+	-- Equipped pet bonus: round up so even a 1-coin Gold coin becomes 2.
+	local petBonus = player:GetAttribute("PetBonus")
+	if typeof(petBonus) == "number" and petBonus > 0 then
+		amount = math.max(1, math.ceil(amount * (1 + petBonus)))
+	end
 
 	coins.Value += amount
 	state.questCoins += 1
